@@ -1,23 +1,68 @@
-# MCP Gerenciador de Projetos - ePixel
+# MCP Gerenciador de Projetos
 
-Este é um projeto pessoal utilizado para o gerenciador de projetos da agência ePixel. 
-O repositório foi tornado público exclusivamente a fim de aprendizado de outras pessoas sobre **MCP (Model Context Protocol)** e desenvolvimento em **Golang**.
+Projeto pessoal para o gerenciador de projetos da agência **ePixel**.  
+Repositório público com fins de **aprendizado** sobre **MCP (Model Context Protocol)** e **Golang**.
+
+---
 
 ## Sobre
-Este é um **Servidor MCP** escrito em Go que atua como uma ponte (tradutor) entre uma IA (como Claude Desktop, Cursor, etc) e a API do sistema SvelteKit da ePixel.
 
-Ele expõe duas ferramentas (`tools`) para a IA:
-- `admin_action`: Permite criar, editar e excluir qualquer entidade do sistema de forma estruturada.
-- `query_db`: Permite a leitura de dados do banco através de consultas SQL.
+Servidor MCP escrito em Go que conecta uma IA (Antigravity CLI, Claude Desktop, Cursor, etc.) à API do sistema de gerenciamento de projetos da ePixel.
 
-## Variáveis de Ambiente
+### Ferramentas disponíveis (12 tools)
 
-Para rodar este MCP, você precisará definir as seguintes variáveis de ambiente:
-- `SVELTEKIT_API_URL`: A URL do seu servidor em produção (ex: `https://clientes.epixel.com.br`) ou local.
-- `MCP_API_KEY`: A chave secreta definida no servidor SvelteKit.
+| Ferramenta | Ações | Descrição |
+|---|---|---|
+| `gerenciar_clientes` | listar, buscar, criar, editar, excluir | Clientes do sistema |
+| `gerenciar_projetos` | listar, buscar, criar, editar, excluir | Projetos e configurações |
+| `gerenciar_tarefas` | listar, buscar, criar, editar, excluir | Tarefas do kanban |
+| `gerenciar_parcelas` | listar, criar, editar, excluir | Parcelas de pagamento |
+| `gerenciar_avisos` | listar, criar, editar, excluir | Avisos rápidos |
+| `gerenciar_documentos` | listar, criar, editar, excluir | Documentos e links |
+| `gerenciar_marcos` | listar, criar, editar, excluir | Milestones do projeto |
+| `gerenciar_changelog` | listar, criar, editar, excluir | Histórico de entregas |
+| `gerenciar_membros` | listar, adicionar, remover | Membros do projeto |
+| `gerenciar_eventos` | listar, criar, editar, excluir | Eventos manuais |
+| `gerenciar_anexos` | listar, criar, excluir | Anexos de tarefas |
+| `consulta_sql` | — | Consulta SQL direta (power tool) |
 
-## Compilando e Rodando
+## Configuração
+
+### 1. Compilar
 
 ```bash
-go build -o mcp-gerenciador
+go build -o mcp-gerenciador.exe .
+```
+
+### 2. Configurar via UI
+
+```bash
+./mcp-gerenciador --setup
+```
+
+Abre uma interface web em `http://localhost:9111` para configurar URL e chave da API.
+
+### 3. Adicionar ao seu cliente MCP
+
+**Antigravity CLI** (`~/.gemini/antigravity-cli/mcp_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "gerenciador-projetos": {
+      "command": "/caminho/para/mcp-gerenciador.exe"
+    }
+  }
+}
+```
+
+A configuração de URL e chave é lida de `~/.mcp-gerenciador/config.json`, salva via `--setup`.
+
+## Estrutura
+
+```
+main.go      → Entry point + UI de configuração (--setup)
+config.go    → Leitura/escrita de config em ~/.mcp-gerenciador/config.json
+api.go       → Helpers HTTP para chamar a API SvelteKit
+tools.go     → 12 ferramentas agrupadas por entidade
 ```
