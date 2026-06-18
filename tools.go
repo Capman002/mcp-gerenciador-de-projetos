@@ -149,13 +149,14 @@ func RegisterAllTools(s *server.MCPServer, cfg *Config) {
 		mcp.WithString("id", mcp.Description("ID da tarefa")),
 		mcp.WithString("project_id", mcp.Description("ID do projeto")),
 		mcp.WithString("title", mcp.Description("Título da tarefa")),
-		mcp.WithString("status", mcp.Description("Status: Backlog | Em Progresso | Revisão | No Ar")),
+		mcp.WithString("status", mcp.Description("Status: Backlog | Em Estruturação | Em Produção | No Ar")),
 		mcp.WithString("description", mcp.Description("Descrição detalhada")),
 		mcp.WithString("media_url", mcp.Description("URL de mídia (imagem/vídeo)")),
 		mcp.WithString("due_date", mcp.Description("Data limite (YYYY-MM-DD)")),
 		mcp.WithString("order_index", mcp.Description("Índice de ordenação")),
 		mcp.WithString("client_approved", mcp.Description("'true' se aprovado pelo cliente")),
 		mcp.WithString("implemented_at", mcp.Description("Data de implementação")),
+		mcp.WithString("percentual", mcp.Description("Percentual de execução da tarefa (0-100)")),
 	), func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args := getArgs(req)
 		if args == nil { return mcp.NewToolResultError("argumentos ausentes"), nil }
@@ -181,15 +182,16 @@ func RegisterAllTools(s *server.MCPServer, cfg *Config) {
 				"title":      getStr(args, "title"),
 				"status":     getStr(args, "status"),
 			}
-			for _, k := range []string{"description", "media_url", "due_date", "order_index"} {
+			for _, k := range []string{"description", "media_url", "due_date", "order_index", "percentual"} {
 				if v := getStr(args, k); v != "" { data[k] = v }
 			}
+			if v := getStr(args, "client_approved"); v == "true" { data["client_approved"] = true } else if v == "false" { data["client_approved"] = false }
 			r, err := CallAction(ctx, cfg, "task", "create", data)
 			if err != nil { return mcp.NewToolResultError(err.Error()), nil }
 			return mcp.NewToolResultText(r), nil
 		case "editar":
 			data := map[string]any{"id": getStr(args, "id")}
-			for _, k := range []string{"project_id", "title", "status", "description", "media_url", "due_date", "order_index", "implemented_at"} {
+			for _, k := range []string{"project_id", "title", "status", "description", "media_url", "due_date", "order_index", "implemented_at", "percentual"} {
 				if v := getStr(args, k); v != "" { data[k] = v }
 			}
 			if v := getStr(args, "client_approved"); v == "true" { data["client_approved"] = true } else if v == "false" { data["client_approved"] = false }
