@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
@@ -22,6 +23,19 @@ func getFloat(args map[string]any, key string) float64 {
 func getArgs(request mcp.CallToolRequest) map[string]any {
 	args, _ := request.Params.Arguments.(map[string]any)
 	return args
+}
+
+// mapTaskStatus converte os nomes de estágio exibidos no frontend
+// para os valores armazenados no banco de dados.
+func mapTaskStatus(status string) string {
+	switch status {
+	case "Bastidores":
+		return "Backlog"
+	case "Em Pauta":
+		return "Em Estruturação"
+	default:
+		return status
+	}
 }
 
 // RegisterAllTools registra todas as ferramentas agrupadas por entidade.
@@ -141,22 +155,22 @@ func RegisterAllTools(s *server.MCPServer, cfg *Config) {
 	})
 
 	// ══════════════════════════════════════════════════════════════
-	// 3. GERENCIAR TAREFAS
+	// 3. GERENCIAR ENTREGAS
 	// ══════════════════════════════════════════════════════════════
-	s.AddTool(mcp.NewTool("gerenciar_tarefas",
-		mcp.WithDescription("Gerencia tarefas de um projeto. Ações: listar, buscar, criar, editar, excluir."),
+	s.AddTool(mcp.NewTool("gerenciar_entregas",
+		mcp.WithDescription("Gerencia entregas do roadmap de um projeto. Ações: listar, buscar, criar, editar, excluir."),
 		mcp.WithString("acao", mcp.Required(), mcp.Description("Ação: listar | buscar | criar | editar | excluir")),
-		mcp.WithString("id", mcp.Description("ID da tarefa")),
+		mcp.WithString("id", mcp.Description("ID da entrega")),
 		mcp.WithString("project_id", mcp.Description("ID do projeto")),
-		mcp.WithString("title", mcp.Description("Título da tarefa")),
-		mcp.WithString("status", mcp.Description("Status: Backlog | Em Estruturação | Em Produção | No Ar")),
+		mcp.WithString("title", mcp.Description("Título da entrega")),
+		mcp.WithString("status", mcp.Description("Status da entrega: Bastidores | Em Pauta | Em Produção | No Ar")),
 		mcp.WithString("description", mcp.Description("Descrição detalhada")),
 		mcp.WithString("media_url", mcp.Description("URL de mídia (imagem/vídeo)")),
 		mcp.WithString("due_date", mcp.Description("Data limite (YYYY-MM-DD)")),
 		mcp.WithString("order_index", mcp.Description("Índice de ordenação")),
 		mcp.WithString("client_approved", mcp.Description("'true' se aprovado pelo cliente")),
 		mcp.WithString("implemented_at", mcp.Description("Data de implementação")),
-		mcp.WithString("percentual", mcp.Description("Percentual de execução da tarefa (0-100)")),
+		mcp.WithString("percentual", mcp.Description("Percentual de execução da entrega (0-100)")),
 	), func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args := getArgs(req)
 		if args == nil { return mcp.NewToolResultError("argumentos ausentes"), nil }
@@ -167,7 +181,7 @@ func RegisterAllTools(s *server.MCPServer, cfg *Config) {
 			if pid == "" { return mcp.NewToolResultError("project_id é obrigatório"), nil }
 			q := fmt.Sprintf("SELECT * FROM tasks WHERE project_id = %s ORDER BY order_index", pid)
 			if st := getStr(args, "status"); st != "" {
-				q = fmt.Sprintf("SELECT * FROM tasks WHERE project_id = %s AND status = '%s' ORDER BY order_index", pid, st)
+				q = fmt.Sprintf("SELECT * FROM tasks WHERE project_id = %s AND status = '%s' ORDER BY order_index", pid, mapTaskStatus(st))
 			}
 			r, err := CallQuery(ctx, cfg, q)
 			if err != nil { return mcp.NewToolResultError(err.Error()), nil }
@@ -180,7 +194,7 @@ func RegisterAllTools(s *server.MCPServer, cfg *Config) {
 			data := map[string]any{
 				"project_id": getStr(args, "project_id"),
 				"title":      getStr(args, "title"),
-				"status":     getStr(args, "status"),
+				"status":     mapTaskStatus(getStr(args, "status")),
 			}
 			for _, k := range []string{"description", "media_url", "due_date", "order_index", "percentual"} {
 				if v := getStr(args, k); v != "" { data[k] = v }
@@ -191,9 +205,10 @@ func RegisterAllTools(s *server.MCPServer, cfg *Config) {
 			return mcp.NewToolResultText(r), nil
 		case "editar":
 			data := map[string]any{"id": getStr(args, "id")}
-			for _, k := range []string{"project_id", "title", "status", "description", "media_url", "due_date", "order_index", "implemented_at", "percentual"} {
+			for _, k := range []string{"project_id", "title", "description", "media_url", "due_date", "order_index", "implemented_at", "percentual"} {
 				if v := getStr(args, k); v != "" { data[k] = v }
 			}
+			if v := getStr(args, "status"); v != "" { data["status"] = mapTaskStatus(v) }
 			if v := getStr(args, "client_approved"); v == "true" { data["client_approved"] = true } else if v == "false" { data["client_approved"] = false }
 			r, err := CallAction(ctx, cfg, "task", "update", data)
 			if err != nil { return mcp.NewToolResultError(err.Error()), nil }
@@ -267,6 +282,8 @@ func RegisterAllTools(s *server.MCPServer, cfg *Config) {
 		mcp.WithString("id", mcp.Description("ID do aviso")),
 		mcp.WithString("project_id", mcp.Description("ID do projeto")),
 		mcp.WithString("notice", mcp.Description("Texto do aviso")),
+		mcp.WithString("url", mcp.Description("URL do link do aviso (opcional)")),
+		mcp.WithString("link_label", mcp.Description("Texto do botão/link do aviso (opcional)")),
 	), func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args := getArgs(req)
 		if args == nil { return mcp.NewToolResultError("argumentos ausentes"), nil }
@@ -277,11 +294,17 @@ func RegisterAllTools(s *server.MCPServer, cfg *Config) {
 			if err != nil { return mcp.NewToolResultError(err.Error()), nil }
 			return mcp.NewToolResultText(r), nil
 		case "criar":
-			r, err := CallAction(ctx, cfg, "notice", "create", map[string]any{"project_id": getStr(args, "project_id"), "notice": getStr(args, "notice")})
+			data := map[string]any{"project_id": getStr(args, "project_id"), "notice": getStr(args, "notice")}
+			if v := getStr(args, "url"); v != "" { data["url"] = v }
+			if v := getStr(args, "link_label"); v != "" { data["link_label"] = v }
+			r, err := CallAction(ctx, cfg, "notice", "create", data)
 			if err != nil { return mcp.NewToolResultError(err.Error()), nil }
 			return mcp.NewToolResultText(r), nil
 		case "editar":
-			r, err := CallAction(ctx, cfg, "notice", "update", map[string]any{"id": getStr(args, "id"), "notice": getStr(args, "notice")})
+			data := map[string]any{"id": getStr(args, "id"), "notice": getStr(args, "notice")}
+			if v := getStr(args, "url"); v != "" { data["url"] = v }
+			if v := getStr(args, "link_label"); v != "" { data["link_label"] = v }
+			r, err := CallAction(ctx, cfg, "notice", "update", data)
 			if err != nil { return mcp.NewToolResultError(err.Error()), nil }
 			return mcp.NewToolResultText(r), nil
 		case "excluir":
@@ -303,7 +326,7 @@ func RegisterAllTools(s *server.MCPServer, cfg *Config) {
 		mcp.WithString("project_id", mcp.Description("ID do projeto")),
 		mcp.WithString("title", mcp.Description("Título do documento")),
 		mcp.WithString("url", mcp.Description("URL do documento")),
-		mcp.WithString("type", mcp.Description("Tipo do documento")),
+		mcp.WithString("type", mcp.Description("Tipo do documento: Contrato | Proposta | Relatório | Escopo | Outro")),
 	), func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args := getArgs(req)
 		if args == nil { return mcp.NewToolResultError("argumentos ausentes"), nil }
@@ -344,7 +367,7 @@ func RegisterAllTools(s *server.MCPServer, cfg *Config) {
 		mcp.WithString("project_id", mcp.Description("ID do projeto")),
 		mcp.WithString("title", mcp.Description("Título do marco")),
 		mcp.WithString("due_date", mcp.Description("Data limite")),
-		mcp.WithString("type", mcp.Description("Tipo do marco")),
+		mcp.WithString("type", mcp.Description("Tipo do marco: Entrega | Cliente | Reunião")),
 	), func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args := getArgs(req)
 		if args == nil { return mcp.NewToolResultError("argumentos ausentes"), nil }
@@ -376,15 +399,16 @@ func RegisterAllTools(s *server.MCPServer, cfg *Config) {
 	})
 
 	// ══════════════════════════════════════════════════════════════
-	// 8. GERENCIAR CHANGELOG
+	// 8. GERENCIAR DIÁRIO DO PROJETO
 	// ══════════════════════════════════════════════════════════════
-	s.AddTool(mcp.NewTool("gerenciar_changelog",
-		mcp.WithDescription("Gerencia histórico de entregas do projeto. Ações: listar, criar, editar, excluir."),
+	s.AddTool(mcp.NewTool("gerenciar_diario",
+		mcp.WithDescription("Gerencia o diário do projeto (atualizações e histórico de entregas). Ações: listar, criar, editar, excluir."),
 		mcp.WithString("acao", mcp.Required(), mcp.Description("Ação: listar | criar | editar | excluir")),
 		mcp.WithString("id", mcp.Description("ID do registro")),
 		mcp.WithString("project_id", mcp.Description("ID do projeto")),
-		mcp.WithString("description", mcp.Description("Descrição da entrega")),
+		mcp.WithString("description", mcp.Description("Descrição da atualização")),
 		mcp.WithString("date", mcp.Description("Data (YYYY-MM-DD)")),
+		mcp.WithString("media_links", mcp.Description("Links de mídia (Google Drive) separados por vírgula")),
 	), func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args := getArgs(req)
 		if args == nil { return mcp.NewToolResultError("argumentos ausentes"), nil }
@@ -397,6 +421,11 @@ func RegisterAllTools(s *server.MCPServer, cfg *Config) {
 		case "criar":
 			data := map[string]any{"project_id": getStr(args, "project_id"), "description": getStr(args, "description")}
 			if v := getStr(args, "date"); v != "" { data["date"] = v }
+			if v := getStr(args, "media_links"); v != "" {
+				links := strings.Split(v, ",")
+				for i := range links { links[i] = strings.TrimSpace(links[i]) }
+				data["media_links"] = links
+			}
 			r, err := CallAction(ctx, cfg, "changelog", "create", data)
 			if err != nil { return mcp.NewToolResultError(err.Error()), nil }
 			return mcp.NewToolResultText(r), nil
@@ -404,6 +433,11 @@ func RegisterAllTools(s *server.MCPServer, cfg *Config) {
 			data := map[string]any{"id": getStr(args, "id")}
 			if v := getStr(args, "description"); v != "" { data["description"] = v }
 			if v := getStr(args, "date"); v != "" { data["date"] = v }
+			if v := getStr(args, "media_links"); v != "" {
+				links := strings.Split(v, ",")
+				for i := range links { links[i] = strings.TrimSpace(links[i]) }
+				data["media_links"] = links
+			}
 			r, err := CallAction(ctx, cfg, "changelog", "update", data)
 			if err != nil { return mcp.NewToolResultError(err.Error()), nil }
 			return mcp.NewToolResultText(r), nil
@@ -424,7 +458,7 @@ func RegisterAllTools(s *server.MCPServer, cfg *Config) {
 		mcp.WithString("acao", mcp.Required(), mcp.Description("Ação: listar | adicionar | remover")),
 		mcp.WithString("project_id", mcp.Description("ID do projeto")),
 		mcp.WithString("client_id", mcp.Description("ID do cliente")),
-		mcp.WithString("role", mcp.Description("Papel: viewer | owner")),
+		mcp.WithString("role", mcp.Description("Papel: owner (Responsável) | viewer (Participante) | hidden (Oculto)")),
 	), func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		args := getArgs(req)
 		if args == nil { return mcp.NewToolResultError("argumentos ausentes"), nil }

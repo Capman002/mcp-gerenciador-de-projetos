@@ -15,15 +15,15 @@ Servidor MCP escrito em Go que conecta uma IA (Antigravity CLI, Claude Desktop, 
 |---|---|---|
 | `gerenciar_clientes` | listar, buscar, criar, editar, excluir | Clientes do sistema |
 | `gerenciar_projetos` | listar, buscar, criar, editar, excluir | Projetos e configurações |
-| `gerenciar_tarefas` | listar, buscar, criar, editar, excluir | Tarefas do kanban |
+| `gerenciar_entregas` | listar, buscar, criar, editar, excluir | Entregas do roadmap (status: Bastidores, Em Pauta, Em Produção, No Ar) |
 | `gerenciar_parcelas` | listar, criar, editar, excluir | Parcelas de pagamento |
-| `gerenciar_avisos` | listar, criar, editar, excluir | Avisos rápidos |
-| `gerenciar_documentos` | listar, criar, editar, excluir | Documentos e links |
-| `gerenciar_marcos` | listar, criar, editar, excluir | Milestones do projeto |
-| `gerenciar_changelog` | listar, criar, editar, excluir | Histórico de entregas |
-| `gerenciar_membros` | listar, adicionar, remover | Membros do projeto |
+| `gerenciar_avisos` | listar, criar, editar, excluir | Avisos rápidos (com link opcional) |
+| `gerenciar_documentos` | listar, criar, editar, excluir | Documentos e links (tipos: Contrato, Proposta, Relatório, Escopo, Outro) |
+| `gerenciar_marcos` | listar, criar, editar, excluir | Marcos do projeto (tipos: Entrega, Cliente, Reunião) |
+| `gerenciar_diario` | listar, criar, editar, excluir | Diário do projeto (atualizações e histórico) |
+| `gerenciar_membros` | listar, adicionar, remover | Equipe do projeto (roles: owner, viewer, hidden) |
 | `gerenciar_eventos` | listar, criar, editar, excluir | Eventos manuais |
-| `gerenciar_anexos` | listar, criar, excluir | Anexos de tarefas |
+| `gerenciar_anexos` | listar, criar, excluir | Anexos de entregas |
 | `consulta_sql` | — | Consulta SQL direta (power tool) |
 
 ## Configuração
