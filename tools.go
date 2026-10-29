@@ -578,7 +578,40 @@ func RegisterAllTools(s *server.MCPServer, cfg *Config) {
 	})
 
 	// ══════════════════════════════════════════════════════════════
-	// 13. VER PROPOSTA (só leitura)
+	// 13. ANOTAÇÕES
+	// ══════════════════════════════════════════════════════════════
+	s.AddTool(mcp.NewTool("anotacoes",
+		mcp.WithDescription("Caderno de anotações do usuário, compartilhado entre todas as conversas e IAs. Durante a conversa, anote por conta própria ideias, decisões, pendências e informações que o usuário disser e que valha guardar, sem esperar ele pedir; antes de responder sobre algo já conversado, consulte com listar. Ações: listar (recentes primeiro, com busca opcional), criar, editar, excluir."),
+		mcp.WithString("acao", mcp.Required(), mcp.Description("Ação: listar | criar | editar | excluir")),
+		mcp.WithString("id", mcp.Description("ID da anotação (editar, excluir)")),
+		mcp.WithString("texto", mcp.Description("Conteúdo da anotação (criar, editar). Comece com uma linha de título curta.")),
+		mcp.WithString("busca", mcp.Description("Trecho para filtrar ao listar (opcional)")),
+		mcp.WithString("project_id", mcp.Description("ID do projeto relacionado (opcional, ao criar ou listar)")),
+	), func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		args := getArgs(req)
+		if args == nil { return mcp.NewToolResultError("argumentos ausentes"), nil }
+		acao := getStr(args, "acao")
+		var action string
+		var data map[string]any
+		switch acao {
+		case "listar":
+			action, data = "list", map[string]any{"search": getStr(args, "busca"), "project_id": getStr(args, "project_id")}
+		case "criar":
+			action, data = "create", map[string]any{"content": getStr(args, "texto"), "project_id": getStr(args, "project_id")}
+		case "editar":
+			action, data = "update", map[string]any{"id": getStr(args, "id"), "content": getStr(args, "texto")}
+		case "excluir":
+			action, data = "delete", map[string]any{"id": getStr(args, "id")}
+		default:
+			return mcp.NewToolResultError("ação inválida: " + acao), nil
+		}
+		r, err := CallAction(ctx, cfg, "note", action, data)
+		if err != nil { return mcp.NewToolResultError(err.Error()), nil }
+		return mcp.NewToolResultText(r), nil
+	})
+
+	// ══════════════════════════════════════════════════════════════
+	// 14. VER PROPOSTA (só leitura)
 	// ══════════════════════════════════════════════════════════════
 	s.AddTool(mcp.NewTool("ver_proposta",
 		mcp.WithDescription("Lê uma proposta comercial do portal: devolve todo o texto da página (escopo, módulos, preços, prazos, condições). Sem 'pagina', lista as páginas de proposta disponíveis."),
