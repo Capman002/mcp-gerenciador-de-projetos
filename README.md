@@ -58,6 +58,12 @@ Abre uma interface web em `http://localhost:9111` para configurar URL e chave da
 
 A configuração de URL e chave é lida de `~/.mcp-gerenciador/config.json`, salva via `--setup`.
 
+### Modo remoto (HTTP)
+
+Com `MCP_HTTP_ADDR` (ex.: `127.0.0.1:3102`) e `MCP_HTTP_TOKEN` (≥ 32 caracteres) definidos,
+o servidor fala MCP Streamable HTTP em `/mcp/<MCP_HTTP_TOKEN>` em vez de stdio. Em produção
+ele roda dentro do container do portal, exposto em `https://clientes.epixel.com.br/mcp/<token>`.
+
 ## Estrutura
 
 ```
