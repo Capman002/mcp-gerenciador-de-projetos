@@ -9,7 +9,7 @@ Repositório público com fins de **aprendizado** sobre **MCP (Model Context Pro
 
 Servidor MCP escrito em Go que conecta uma IA (Antigravity CLI, Claude Desktop, Cursor, etc.) à API do sistema de gerenciamento de projetos da ePixel.
 
-### Ferramentas disponíveis (12 tools)
+### Ferramentas disponíveis (13 tools)
 
 | Ferramenta | Ações | Descrição |
 |---|---|---|
@@ -25,6 +25,7 @@ Servidor MCP escrito em Go que conecta uma IA (Antigravity CLI, Claude Desktop, 
 | `gerenciar_eventos` | listar, criar, editar, excluir | Eventos manuais |
 | `gerenciar_anexos` | listar, criar, excluir | Anexos de entregas |
 | `consulta_sql` | — | Consulta SQL direta (power tool) |
+| `ver_proposta` | — | Texto completo de uma proposta do portal (sem `pagina`, lista as propostas) |
 
 ## Configuração
 

@@ -576,4 +576,23 @@ func RegisterAllTools(s *server.MCPServer, cfg *Config) {
 		if err != nil { return mcp.NewToolResultError(err.Error()), nil }
 		return mcp.NewToolResultText(r), nil
 	})
+
+	// ══════════════════════════════════════════════════════════════
+	// 13. VER PROPOSTA (só leitura)
+	// ══════════════════════════════════════════════════════════════
+	s.AddTool(mcp.NewTool("ver_proposta",
+		mcp.WithDescription("Lê uma proposta comercial do portal: devolve todo o texto da página (escopo, módulos, preços, prazos, condições). Sem 'pagina', lista as páginas de proposta disponíveis."),
+		mcp.WithString("pagina", mcp.Description("Página da proposta, como aparece na lista: ex. 'jhl', 'livipay-ia' ou 'livipay-ia/mercado'")),
+	), func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		page := strings.Trim(strings.TrimPrefix(strings.Trim(getStr(getArgs(req), "pagina"), "/"), "propostas/"), "/")
+		if page == "" {
+			r, err := CallAction(ctx, cfg, "proposal", "list", nil)
+			if err != nil { return mcp.NewToolResultError(err.Error()), nil }
+			return mcp.NewToolResultText(r), nil
+		}
+		if strings.Contains(page, "..") { return mcp.NewToolResultError("página inválida"), nil }
+		r, err := GetProposalText(ctx, cfg, page)
+		if err != nil { return mcp.NewToolResultError(err.Error()), nil }
+		return mcp.NewToolResultText(r), nil
+	})
 }
