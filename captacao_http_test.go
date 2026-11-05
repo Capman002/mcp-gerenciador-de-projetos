@@ -316,3 +316,30 @@ func TestExplicitEmptyPrincipalNeverFallsBackToMaster(t *testing.T) {
 		t.Fatal("explicit empty credential silently fell back to master")
 	}
 }
+
+func TestCallQueryAlwaysSendsParameterArray(t *testing.T) {
+	requests := 0
+	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var payload map[string]json.RawMessage
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			t.Error(err)
+		}
+		var params []any
+		if string(payload["params"]) == "null" || json.Unmarshal(payload["params"], &params) != nil {
+			t.Error("query parameters must be a JSON array")
+		}
+		requests++
+		io.WriteString(w, `{"success":true,"results":[]}`)
+	}))
+	defer backend.Close()
+	cfg := &Config{ApiUrl: backend.URL, ApiKey: "fixture"}
+	if _, err := CallQuery(t.Context(), cfg, "SELECT 1"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := CallQueryParams(t.Context(), cfg, "SELECT ?", []any{1}); err != nil {
+		t.Fatal(err)
+	}
+	if requests != 2 {
+		t.Fatalf("requests %d", requests)
+	}
+}

@@ -76,6 +76,9 @@ func CallQuery(ctx context.Context, cfg *Config, query string) (string, error) {
 }
 
 func CallQueryParams(ctx context.Context, cfg *Config, query string, params []any) (string, error) {
+	if params == nil {
+		params = []any{}
+	}
 	payload := map[string]any{
 		"query":  query,
 		"params": params,
