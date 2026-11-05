@@ -74,3 +74,31 @@ config.go    → Leitura/escrita de config em ~/.mcp-gerenciador/config.json
 api.go       → Helpers HTTP para chamar a API SvelteKit
 tools.go     → 12 ferramentas agrupadas por entidade
 ```
+
+
+## Captação com acesso individual
+
+A conexão administrativa existente continua em `/mcp/<MCP_HTTP_TOKEN>` e reúne
+as 14 ferramentas de Projetos e as 13 de Captação. O vendedor usa exclusivamente
+`/mcp/sales/<credencial individual>`, emitida e revogável no portal pelo administrador.
+A conexão individual administrativa usa `/mcp/admin/<credencial individual admin>`
+e preserva o autor real nas ações. Não compartilhe conexões administrativas com vendedores.
+
+Cada requisição da conexão do vendedor verifica a credencial e o papel atual em
+`GET /api/mcp/access`. O catálogo e a execução contêm somente ferramentas Captação:
+
+- `captacao_listar`, `captacao_ficha`, `captacao_historico`
+- `captacao_contato`, `captacao_descartar`, `captacao_visita`
+- `captacao_mapa`, `captacao_rota`, `captacao_localizacao`
+- `captacao_fontes`, `captacao_rotina`, `captacao_exportar`, `captacao_enviar_crm`
+
+`captacao-tools.json` é o contrato compartilhado com o backend: entradas e saídas
+possuem JSON Schema validado no MCP e na API. Listas possuem páginas de até 50
+itens e cursores; ficha por seção evita carregar análises e históricos sem pedido.
+A resposta Captação usa `structuredContent` sem repetir o JSON em `content`.
+O cliente MCP precisa consumir respostas estruturadas. Consultas e ações do
+vendedor usam sempre sua credencial individual; não há fallback para a chave admin.
+
+A sincronização do catálogo deve preservar o arquivo byte a byte entre os dois
+repositórios. `go test ./...` cobre separação de catálogos, rejeição de ferramentas
+administrativas, limites/tipos, revogação, troca de papel e encaminhamento da credencial.

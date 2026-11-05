@@ -19,9 +19,9 @@ func GetProposalText(ctx context.Context, cfg *Config, page string) (string, err
 	if err != nil {
 		return "", fmt.Errorf("request error: %w", err)
 	}
-	req.Header.Set("Authorization", "Bearer "+cfg.ApiKey)
+	req.Header.Set("Authorization", "Bearer "+requestCredential(ctx, cfg))
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := apiHTTP.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("request failed: %w", err)
 	}
@@ -72,8 +72,13 @@ func CallAction(ctx context.Context, cfg *Config, entity, action string, data ma
 
 // CallQuery sends a SQL query to /api/mcp/query.
 func CallQuery(ctx context.Context, cfg *Config, query string) (string, error) {
+	return CallQueryParams(ctx, cfg, query, nil)
+}
+
+func CallQueryParams(ctx context.Context, cfg *Config, query string, params []any) (string, error) {
 	payload := map[string]any{
-		"query": query,
+		"query":  query,
+		"params": params,
 	}
 	return doPost(ctx, cfg, "/api/mcp/query", payload)
 }
@@ -90,9 +95,9 @@ func doPost(ctx context.Context, cfg *Config, path string, payload map[string]an
 		return "", fmt.Errorf("request error: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+cfg.ApiKey)
+	req.Header.Set("Authorization", "Bearer "+requestCredential(ctx, cfg))
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := apiHTTP.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("request failed: %w", err)
 	}
